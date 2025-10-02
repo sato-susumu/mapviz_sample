@@ -1,0 +1,62 @@
+capture_directory: "~"
+fixed_frame: map
+target_frame: base_link
+fix_orientation: false
+rotate_90: false
+enable_antialiasing: true
+show_displays: true
+show_status_bar: true
+show_capture_tools: true
+window_width: 1280
+window_height: 720
+view_scale: 0.05
+offset_x: 0
+offset_y: 0
+use_latest_transforms: true
+background: "#a0a0a4"
+image_transport: raw
+displays:
+  - type: mapviz_plugins/tile_map
+    name: Map Tiles
+    config:
+      visible: true
+      collapsed: false
+      custom_sources:
+        - base_url: https://tile.openstreetmap.org/{level}/{x}/{y}.png
+          max_zoom: 19
+          name: OpenStreetMap
+          type: wmts
+        - base_url: https://cyberjapandata.gsi.go.jp/xyz/std/{level}/{x}/{y}.png
+          max_zoom: 18
+          name: GSI Standard
+          type: wmts
+        - base_url: https://cyberjapandata.gsi.go.jp/xyz/pale/{level}/{x}/{y}.png
+          max_zoom: 18
+          name: GSI Pale
+          type: wmts
+        - base_url: https://cyberjapandata.gsi.go.jp/xyz/english/{level}/{x}/{y}.png
+          max_zoom: 11
+          name: GSI English
+          type: wmts
+        - base_url: https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{level}/{x}/{y}.jpg
+          max_zoom: 18
+          name: GSI Photo
+          type: wmts
+      bing_api_key: ""
+      source: OpenStreetMap
+  - type: mapviz_plugins/navsat
+    name: GPS Position
+    config:
+      visible: true
+      collapsed: false
+      topic: /gps/fix
+      color: "#ff0000"
+      draw_style: arrows
+      position_tolerance: 0.0
+      buffer_size: 1000
+      static_arrow_sizes: true
+      arrow_size: 20
+      qos_depth: 10
+      qos_history: 1
+      qos_reliability: 1
+      qos_durability: 2
