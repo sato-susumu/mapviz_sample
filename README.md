@@ -43,7 +43,7 @@ bash publish_tokyo.sh
 別のターミナルで、またはバックグラウンドで起動します：
 
 ```bash
-ros2 launch mapviz.launch.py
+ros2 launch mapviz_auto.launch.py
 ```
 
 ### 方法2: 固定原点で起動する場合
@@ -133,7 +133,7 @@ publishing #1: sensor_msgs.msg.NavSatFix(header=std_msgs.msg.Header(stamp=builti
 
 ### Mapviz起動時のログ（正常パターン）
 
-`ros2 launch mapviz.launch.py`実行後、以下のログが順番に出れば起動成功：
+`ros2 launch mapviz_auto.launch.py`実行後、以下のログが順番に出れば起動成功：
 
 #### 1. Initialize Origin成功
 ```
@@ -230,7 +230,7 @@ ps aux | grep publish
 bash stop_all.sh
 sleep 3
 bash publish_osaka.sh
-ros2 launch mapviz.launch.py
+ros2 launch mapviz_auto.launch.py
 ```
 
 ### 完全起動の確認コマンド
@@ -272,7 +272,7 @@ ros2 topic echo /local_xy_origin --once
    # 3秒待つ
    bash publish_osaka.sh  # または他の場所
    # 別のターミナルで
-   ros2 launch mapviz.launch.py
+   ros2 launch mapviz_auto.launch.py
    ```
 
 ### 古い座標が表示される
