@@ -284,7 +284,7 @@ displays:
     config:
       visible: true
       collapsed: true
-      topic: /gps/fix
+      topic: /fix
       color: "#fce94f"
       draw_style: points
       position_tolerance: 0.5

@@ -20,7 +20,7 @@
 
 ```mermaid
 graph LR
-    A[osaka_navsat_transform] -->|/gps/fix| B[mapviz]
+    A[osaka_navsat_transform] -->|/fix| B[mapviz]
     A -->|/local_xy_origin| B
     A -->|/odometry/gps| B
     C[static_transform_publisher] -->|/tf_static| B
@@ -67,7 +67,7 @@ sequenceDiagram
     M->>W: WGS84変換を初期化
     W->>W: LocalXyWgs84Util initializing origin
 
-    N->>M: /gps/fix (NavSatFix)
+    N->>M: /fix (NavSatFix)
     Note over N,M: 定期的に配信 (10Hz)
 
     M->>W: GPS座標をローカルXYに変換
@@ -123,7 +123,7 @@ altitude: 5.0         # 高度
 - Durability: `TRANSIENT_LOCAL` (mapviz起動後でもメッセージを受信できるように)
 - Depth: 1
 
-### 2. `/gps/fix` トピック
+### 2. `/fix` トピック
 
 **メッセージ型:** [`sensor_msgs/msg/NavSatFix`](https://docs.ros2.org/latest/api/sensor_msgs/msg/NavSatFix.html)
 
@@ -305,7 +305,7 @@ displays:
     config:
       visible: true
       collapsed: false
-      topic: /gps/fix
+      topic: /fix
       color: "#ff0000"
       draw_style: points
       position_tolerance: 0.0
@@ -430,7 +430,7 @@ class OsakaNavSatTransform(Node):
         self.origin_publisher = self.create_publisher(
             PoseStamped, '/local_xy_origin', origin_qos)
         self.gps_publisher = self.create_publisher(
-            NavSatFix, '/gps/fix', 10)
+            NavSatFix, '/fix', 10)
 
         # TF broadcaster
         self.static_tf_broadcaster = StaticTransformBroadcaster(self)
@@ -512,7 +512,7 @@ ros2 run mapviz mapviz --load /home/taro/temp2/mapviz_osaka_gsi.mvc
 ros2 topic echo /local_xy_origin --once
 
 # GPS fixを確認
-ros2 topic echo /gps/fix --once
+ros2 topic echo /fix --once
 
 # TF変換ツリーを確認
 ros2 run tf2_tools view_frames
@@ -605,7 +605,7 @@ mapvizの`/local_xy_origin`は**初期化パラメータ**として使用され�
 graph LR
     A[/local_xy_origin] -->|latitude, longitude| B[WGS84Transformer]
     B -->|初期化| C[原点設定]
-    D[/gps/fix] -->|NavSatFix| B
+    D[/fix] -->|NavSatFix| B
     B -->|変換| E[ローカルXY座標<br/>REP 103準拠]
 
     style A fill:#FFB6C1
@@ -692,7 +692,7 @@ mapvizでGPS座標を扱う際の確認事項：
 - ✅ TF変換ツリーは右手座標系に従っているか
 - ✅ `map`フレームはENU（X=東、Y=北、Z=上）か
 - ✅ `/local_xy_origin`にはGPS座標（経度・緯度）を設定しているか
-- ✅ `/gps/fix`のframe_idは`gps_link`か
+- ✅ `/fix`のframe_idは`gps_link`か
 - ✅ クォータニオンは正規化されているか（w²+x²+y²+z²=1）
 
 ---
@@ -752,7 +752,7 @@ mapvizで地図タイルを表示するには：
    - position.x = 経度、position.y = 緯度
    - QoS: TRANSIENT_LOCAL
 
-2. ✅ `/gps/fix` (NavSatFix) でGPS座標を定期配信
+2. ✅ `/fix` (NavSatFix) でGPS座標を定期配信
    - 10Hz推奨
 
 3. ✅ TF変換ツリーを構築

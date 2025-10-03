@@ -94,7 +94,7 @@ pose:
   <node pkg="swri_transform_util" type="initialize_origin.py" name="initialize_origin">
     <param name="local_xy_frame" value="/map"/>
     <param name="local_xy_origin" value="auto"/>
-    <remap from="fix" to="/gps/fix"/>
+    <remap from="fix" to="/fix"/>
   </node>
   
   <!-- 必須の静的トランスフォーム -->
@@ -238,7 +238,7 @@ GPSを使用する場合の標準的なrobot_localization設定は**デュアル
         ┌──────────────────┐
         │   GPSセンサー     │
         └────────┬─────────┘
-                 │ /gps/fix
+                 │ /fix
                  │
         ┌────────▼─────────────────┐
         │ navsat_transform_node    │
@@ -276,7 +276,7 @@ GPSを使用する場合の標準的なrobot_localization設定は**デュアル
   <node pkg="swri_transform_util" type="initialize_origin.py" name="initialize_origin">
     <param name="local_xy_frame" value="/map"/>
     <param name="local_xy_origin" value="auto"/>
-    <remap from="fix" to="/gps/fix"/>
+    <remap from="fix" to="/fix"/>
   </node>
   
   <node pkg="tf" type="static_transform_publisher" name="swri_transform" 
@@ -284,7 +284,7 @@ GPSを使用する場合の標準的なrobot_localization設定は**デュアル
 </launch>
 ```
 
-**動作**：スクリプトは`/gps/fix`の最初のGPSメッセージを待ち、そのGPS座標に原点を設定します。これにより、Mapvizは地図タイルとGPSデータを表示できるようになります。
+**動作**：スクリプトは`/fix`の最初のGPSメッセージを待ち、そのGPS座標に原点を設定します。これにより、Mapvizは地図タイルとGPSデータを表示できるようになります。
 
 ### ユースケース2：一貫した地図のための固定原点
 
@@ -438,8 +438,8 @@ can't locate node [initialize_origin.py] in package [swri_transform_util]
 
 **GPSメッセージが受信されない**：
 - トピックのリマッピングを確認：`fix`トピックが正しくリマッピングされているか確認
-- GPS発行を確認：`rostopic echo /gps/fix`
-- メッセージレートを確認：`rostopic hz /gps/fix`
+- GPS発行を確認：`rostopic echo /fix`
+- メッセージレートを確認：`rostopic hz /fix`
 
 **無効なGPS測位**：
 - 不正なGPSデータに対して`InvalidFixException`が発生

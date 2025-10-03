@@ -34,10 +34,6 @@ bash publish_osaka.sh
 bash publish_tokyo.sh
 ```
 
-**ニューヨークの場合:**
-```bash
-bash publish_newyork.sh
-```
 
 ### 2. Mapvizの起動
 
