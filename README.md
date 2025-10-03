@@ -1,15 +1,29 @@
 # mapvizのサンプル
 
-ROS 2 Humbleでmapvizを使用して、世界各地のGPS位置と地図タイルを表示するデモです。
-
-## 概要
-
-mapvizのサンプルです。
+ROS 2 Humbleでmapvizの使い方を示すサンプルです。
 
 ## 動作確認環境
-- Ubuntu 22.04
-- ROS 2 Humble
-- Mapviz
+
+| 項目 | バージョン |
+|------|-----------|
+| OS | Ubuntu 22.04 |
+| ROS | ROS 2 Humble |
+| Mapviz | 2.5.10 |
+| Python | 3.10 |
+
+## インストール方法
+
+### 必要なパッケージのインストール
+
+```bash
+sudo apt update
+sudo apt install -y ros-${ROS_DISTRO}-mapviz \
+    ros-${ROS_DISTRO}-mapviz-plugins \
+    ros-${ROS_DISTRO}-tile-map \
+    ros-${ROS_DISTRO}-multires-image \
+    ros-${ROS_DISTRO}-swri-transform-util
+```
+
 
 ## 座標情報
 高度は適当です。
