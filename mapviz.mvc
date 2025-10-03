@@ -49,7 +49,7 @@ displays:
     config:
       visible: true
       collapsed: false
-      topic: /gps/fix
+      topic: /fix
       color: "#ff0000"
       draw_style: arrows
       position_tolerance: 0.0

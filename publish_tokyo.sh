@@ -1,7 +1,7 @@
 #!/bin/bash
 # Publish GPS data for Tokyo Station
 
-ros2 topic pub /gps/fix sensor_msgs/msg/NavSatFix "{
+ros2 topic pub /fix sensor_msgs/msg/NavSatFix "{
   header: {
     stamp: {sec: 0, nanosec: 0},
     frame_id: 'gps_link'

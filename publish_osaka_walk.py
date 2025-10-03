@@ -14,7 +14,7 @@ import time
 class OsakaWalkPublisher(Node):
     def __init__(self):
         super().__init__('osaka_walk_publisher')
-        self.publisher = self.create_publisher(NavSatFix, '/gps/fix', 10)
+        self.publisher = self.create_publisher(NavSatFix, '/fix', 10)
 
         # Route waypoints: Osaka Station -> Umeda -> Yodoyabashi -> Shinsaibashi -> Namba
         # Following Midosuji street

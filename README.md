@@ -7,7 +7,9 @@ ROS 2 Humbleでmapvizを使用して、世界各地のGPS位置と地図タイ�
 mapvizのサンプルです。
 
 ## 動作確認環境
-TODO
+- Ubuntu 22.04
+- ROS 2 Humble
+- Mapviz
 
 ## 座標情報
 高度は適当です。
@@ -52,7 +54,7 @@ ros2 launch mapviz.launch.py
 GPS座標が正しく発行されているか確認：
 
 ```bash
-ros2 topic echo /gps/fix --once
+ros2 topic echo /fix --once
 ```
 
 期待される出力例（大阪の場合）：
@@ -94,7 +96,7 @@ ros2 topic list | grep -E "gps|local_xy"
 
 期待される出力：
 ```
-/gps/fix
+/fix
 /local_xy_origin
 ```
 
@@ -165,7 +167,7 @@ publishing #1: sensor_msgs.msg.NavSatFix(header=std_msgs.msg.Header(stamp=builti
 
 #### 5. GPS受信成功
 ```
-[ros2-5] [INFO] [xxxxx]: Subscribing to /gps/fix
+[ros2-5] [INFO] [xxxxx]: Subscribing to /fix
 [ros2-5] [INFO] [xxxxx]: OK
 ```
 
@@ -228,7 +230,7 @@ ros2 launch mapviz.launch.py
 
 ```bash
 # GPS座標が1Hzで発行されているか
-ros2 topic hz /gps/fix
+ros2 topic hz /fix
 # 期待: average rate: 1.000
 
 # Originが設定されているか
@@ -247,7 +249,7 @@ ros2 topic echo /local_xy_origin --once
 
 1. GPS座標が正しく発行されているか確認
    ```bash
-   ros2 topic hz /gps/fix
+   ros2 topic hz /fix
    ```
 
 2. initialize_originがoriginを設定したか確認
@@ -286,7 +288,7 @@ stop_all.shを使用してください。`killall bash`は使用しないでく�
 
 1. **GPS Publisher (publish_*.sh)**
    - `ros2 topic pub`コマンドでGPS座標を1Hzで発行
-   - トピック: `/gps/fix` (sensor_msgs/NavSatFix)
+   - トピック: `/fix` (sensor_msgs/NavSatFix)
 
 2. **Initialize Origin (swri_transform_util)**
    - 最初のGPS座標から原点を自動設定
