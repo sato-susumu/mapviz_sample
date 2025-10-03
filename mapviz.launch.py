@@ -34,7 +34,7 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             name='map_to_odom',
-            arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
+            arguments=['--x', '0', '--y', '0', '--z', '0', '--roll', '0', '--pitch', '0', '--yaw', '0', '--frame-id', 'map', '--child-frame-id', 'odom']
         ),
 
         # Static TF: odom -> base_link
@@ -42,7 +42,7 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             name='odom_to_base_link',
-            arguments=['0', '0', '0', '0', '0', '0', 'odom', 'base_link']
+            arguments=['--x', '0', '--y', '0', '--z', '0', '--roll', '0', '--pitch', '0', '--yaw', '0', '--frame-id', 'odom', '--child-frame-id', 'base_link']
         ),
 
         # Static TF: base_link -> gps_link
@@ -50,7 +50,7 @@ def generate_launch_description():
             package='tf2_ros',
             executable='static_transform_publisher',
             name='base_link_to_gps_link',
-            arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'gps_link']
+            arguments=['--x', '0', '--y', '0', '--z', '0', '--roll', '0', '--pitch', '0', '--yaw', '0', '--frame-id', 'base_link', '--child-frame-id', 'gps_link']
         ),
 
         # Start mapviz
