@@ -1,6 +1,6 @@
 capture_directory: "~"
 fixed_frame: map
-target_frame: base_link
+target_frame: gps_link
 fix_orientation: false
 rotate_90: false
 enable_antialiasing: true

@@ -31,10 +31,14 @@ def generate_launch_description():
             output='screen',
             parameters=[{
                 'local_xy_frame': 'map',
-                'local_xy_origin': 'manual',
-                'local_xy_origin_latitude': osaka_station_lat,
-                'local_xy_origin_longitude': osaka_station_lon,
-                'local_xy_origin_altitude': osaka_station_alt
+                'local_xy_origin': 'osaka_station',
+                'local_xy_origins': str([{
+                    'name': 'osaka_station',
+                    'latitude': osaka_station_lat,
+                    'longitude': osaka_station_lon,
+                    'altitude': osaka_station_alt,
+                    'heading': 0.0
+                }])
             }]
         ),
 
