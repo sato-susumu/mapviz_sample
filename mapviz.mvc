@@ -7,9 +7,9 @@ enable_antialiasing: true
 show_displays: true
 show_status_bar: true
 show_capture_tools: true
-window_width: 1280
-window_height: 720
-view_scale: 0.05
+window_width: 2400
+window_height: 1200
+view_scale: 0.35
 offset_x: 0
 offset_y: 0
 use_latest_transforms: true
@@ -28,22 +28,22 @@ displays:
           type: wmts
         - base_url: https://cyberjapandata.gsi.go.jp/xyz/std/{level}/{x}/{y}.png
           max_zoom: 18
-          name: GSI Standard
+          name: GSI_Standard
           type: wmts
         - base_url: https://cyberjapandata.gsi.go.jp/xyz/pale/{level}/{x}/{y}.png
           max_zoom: 18
-          name: GSI Pale
+          name: GSI_Pale
           type: wmts
         - base_url: https://cyberjapandata.gsi.go.jp/xyz/english/{level}/{x}/{y}.png
           max_zoom: 11
-          name: GSI English
+          name: GSI_English
           type: wmts
         - base_url: https://cyberjapandata.gsi.go.jp/xyz/seamlessphoto/{level}/{x}/{y}.jpg
           max_zoom: 18
-          name: GSI Photo
+          name: GSI_Photo
           type: wmts
       bing_api_key: ""
-      source: OpenStreetMap
+      source: GSI_Photo
   - type: mapviz_plugins/navsat
     name: GPS Position
     config:
@@ -51,11 +51,9 @@ displays:
       collapsed: false
       topic: /fix
       color: "#ff0000"
-      draw_style: arrows
-      position_tolerance: 0.0
-      buffer_size: 1000
-      static_arrow_sizes: true
-      arrow_size: 20
+      draw_style: points
+      position_tolerance: 0
+      buffer_size: 100
       qos_depth: 10
       qos_history: 1
       qos_reliability: 1

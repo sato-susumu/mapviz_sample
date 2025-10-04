@@ -2,7 +2,6 @@
 
 import os
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
 from launch_ros.actions import Node
 
 
@@ -17,6 +16,11 @@ def generate_launch_description():
     osaka_station_lat = 34.702485
     osaka_station_lon = 135.495951
     osaka_station_alt = 0.0
+
+    # Remove cached mapviz config file to ensure fresh config load
+    mapviz_cache_file = os.path.expanduser('~/.mapviz_config')
+    if os.path.exists(mapviz_cache_file):
+        os.remove(mapviz_cache_file)
 
     return LaunchDescription([
         # Start initialize_origin node with fixed Osaka Station coordinates
@@ -59,8 +63,14 @@ def generate_launch_description():
         ),
 
         # Start mapviz
-        ExecuteProcess(
-            cmd=['ros2', 'run', 'mapviz', 'mapviz', '--load', mapviz_config],
-            output='screen'
+        Node(
+            package='mapviz',
+            executable='mapviz',
+            name='mapviz',
+            output='screen',
+            parameters=[{
+                'config': mapviz_config,
+                'autosave': False
+            }]
         ),
     ])

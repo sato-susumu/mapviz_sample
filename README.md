@@ -59,6 +59,8 @@ bash publish_tokyo.sh
 ```bash
 ros2 launch mapviz_auto.launch.py
 ```
+※ AutoSaveを無効にしています。GUIを変更した場合は、手動で保存してください。
+※ 起動時にローカルの設定ファイル(`~/.mapviz_config`)を削除しています。
 
 ### 方法2: 固定原点で起動する場合
 
@@ -68,7 +70,9 @@ GPS座標を受け取らずに、大阪駅を原点とする固定座標系で�
 ros2 launch mapviz_fixed_origin.launch.py
 ```
 
-この方法ではGPSパブリッシャー（publish_*.sh）を起動する必要がありません。
+※ この方法ではGPSパブリッシャー（publish_*.sh）を起動する必要がありません。
+※ AutoSaveを無効にしています。GUIを変更した場合は、手動で保存してください。
+※ 起動時にローカルの設定ファイル(`~/.mapviz_config`)を削除しています。
 
 ## システム診断ツール
 

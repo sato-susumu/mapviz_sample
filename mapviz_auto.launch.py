@@ -2,10 +2,7 @@
 
 import os
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
@@ -14,6 +11,11 @@ def generate_launch_description():
 
     # Path to mapviz config file
     mapviz_config = os.path.join(launch_dir, 'mapviz.mvc')
+
+    # Remove cached mapviz config file to ensure fresh config load
+    mapviz_cache_file = os.path.expanduser('~/.mapviz_config')
+    if os.path.exists(mapviz_cache_file):
+        os.remove(mapviz_cache_file)
 
     return LaunchDescription([
         # Start initialize_origin node to set origin from first GPS fix
@@ -54,8 +56,14 @@ def generate_launch_description():
         ),
 
         # Start mapviz
-        ExecuteProcess(
-            cmd=['ros2', 'run', 'mapviz', 'mapviz', '--load', mapviz_config],
-            output='screen'
+        Node(
+            package='mapviz',
+            executable='mapviz',
+            name='mapviz',
+            output='screen',
+            parameters=[{
+                'config': mapviz_config,
+                'autosave': False
+            }]
         ),
     ])
