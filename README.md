@@ -83,7 +83,7 @@ ros2 launch mapviz_fixed_origin.launch.py
 
 ## システム診断ツール
 
-Mapvizシステムが正常に動作しているかを確認するための診断ツール `mapviz_doctor.py` が用意しました。
+Mapvizシステムが正常に動作しているかを確認するための診断ツール `mapviz_doctor.py` を用意しました。
 
 ### 使用方法
 
