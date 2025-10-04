@@ -1,6 +1,20 @@
 # mapvizのサンプル
 
-ROS 2 Humbleでmapvizの使い方を示すサンプルです。
+## Mapvizを使う場合のポイント
+- AutoSaveがデフォルトで有効です。設定内容が `~/.mapviz_config` に自動保存される。
+- 起動時に `~/.mapviz_config` が存在すると、その設定が優先的に読み込まれる。
+- 2025年10月現在、Mapvizのプリセット地図タイルStamen Mapは利用できない。変更が必要。
+- Mapviz起動には最低限/local_xy_originトピックが必要。このトピックのx,y,zが特殊で、緯度・経度・高度をそのまま設定する必要がある。
+  - 例：大阪駅の場合、x=135.495951, y=34.702485, z=5.0
+  - 別途別パッケージのinitialize_origin.pyを使うことで解決できが、挙動が分かりづらい。
+
+## このサンプルで改善できること
+- AutoSaveを無効にして起動
+- 起動時に `~/.mapviz_config`を自動削除
+- GPS座標の配信サンプル、初回GPS座標を原点として起動するlaunchファイルを用意 (mapviz_auto.launch.py)
+- 固定座標を原点として起動するlaunchファイルを用意 (mapviz_fixed_origin.launch.py)
+- 国土地理院の地図タイル(標準、淡色、写真、英語)、OpenStreetMapの地図タイルの設定を用意
+- うまく動作しない場合の診断ツールを用意 (mapviz_doctor.py)
 
 ## 動作確認環境
 
@@ -11,9 +25,7 @@ ROS 2 Humbleでmapvizの使い方を示すサンプルです。
 | Mapviz | 2.5.10 |
 | Python | 3.10 |
 
-## インストール方法
-
-### 必要なパッケージのインストール
+## Mapvizのインストール方法
 
 ```bash
 sudo apt update
@@ -25,14 +37,6 @@ sudo apt install -y ros-${ROS_DISTRO}-mapviz \
 ```
 
 
-## 座標情報
-高度は適当です。
-
-| 場所 | 緯度 | 経度 | 高度 |
-|------|------|------|------|
-| 大阪駅 | 34.702485 | 135.495951 | 5.0m |
-| 東京駅 | 35.681236 | 139.767125 | 5.0m |
-
 ## 起動方法
 
 ### 方法1: GPS座標を受け取る場合
@@ -41,7 +45,7 @@ sudo apt install -y ros-${ROS_DISTRO}-mapviz \
 
 表示したい場所のスクリプトを起動します：
 
-**大阪駅の場合:**
+**日本の中心(大阪駅)の場合:**
 ```bash
 bash publish_osaka.sh
 ```
@@ -112,14 +116,14 @@ python3 mapviz_doctor.py
      /local_xy_origin
      /parameter_events
      ... (他 3個を省略)
-✅ OK  Mapviz必須トピック確認
-     必須トピック確認:
-     /tf (TF変換用): ✓ 存在
-     /tf_static (静的TF変換用): ✓ 存在
-✅ OK  GPS関連トピック確認
-     GPS関連トピック確認:
-     /fix (GPS座標表示用): ✓ 存在
-     /local_xy_origin (GPS原点設定用): ✓ 存在
+✅ OK  Mapviz必須トピックpublisher確認
+     必須トピックpublisher確認:
+     /tf (TF変換用): ✓ Publisher 1件
+     /tf_static (静的TF変換用): ✓ Publisher 3件
+✅ OK  GPS関連トピックpublisher確認
+     GPS関連トピックpublisher確認:
+     /fix (GPS座標表示用): ✓ Publisher 1件
+     /local_xy_origin (GPS原点設定用): ✓ Publisher 1件
 
 ============================================================
   2. TF変換の確認 [GPS表示用・オプション]
@@ -152,5 +156,5 @@ python3 mapviz_doctor.py
 ============================================================
   診断完了
 ============================================================
-✅ すべてのチェックに合格しました！
+✅ すべてのチェックに合格しました!
 ```
