@@ -27,7 +27,9 @@
 | Mapviz | 2.5.10 |
 | Python | 3.10 |
 
-## Mapvizのインストール方法
+## セットアップ手順
+
+### 1. Mapvizのインストール
 
 ```bash
 sudo apt update
@@ -36,6 +38,13 @@ sudo apt install -y ros-${ROS_DISTRO}-mapviz \
     ros-${ROS_DISTRO}-tile-map \
     ros-${ROS_DISTRO}-multires-image \
     ros-${ROS_DISTRO}-swri-transform-util
+```
+
+### 2. このリポジトリのクローン
+
+```bash
+git clone https://github.com/sato-susumu/mapviz_sample.git
+cd mapviz_sample
 ```
 
 ## 方法1: GPS座標を原点とするMapviz起動
@@ -66,6 +75,12 @@ ros2 launch mapviz_auto.launch.py
 
 ※ AutoSaveを無効にしています。GUIを変更した場合は、手動で保存してください。<br>
 ※ 起動時にローカルの設定ファイル(`~/.mapviz_config`)を削除しています。
+
+### 成功時の表示例
+
+正常に起動すると、以下のように国土地理院の航空写真上にGPS座標が赤い点で表示されます：
+
+<img src="mapviz_ss.png" alt="Mapviz表示例" width="50%">
 
 ## 方法2: 固定座標を原点とするMapviz起動
 

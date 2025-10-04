@@ -20,26 +20,24 @@
 
 ```mermaid
 graph LR
-    A[osaka_navsat_transform] -->|/fix| B[mapviz]
-    A -->|/local_xy_origin| B
-    A -->|/odometry/gps| B
-    C[static_transform_publisher] -->|/tf_static| B
+    A[initialize_origin.py] -->|/local_xy_origin| B[mapviz]
+    C[GPS Publisher] -->|/fix| B
+    D[static_transform_publisher] -->|/tf_static| B
 
     style A fill:#90EE90
     style B fill:#87CEEB
-    style C fill:#FFB6C1
+    style C fill:#FFD700
+    style D fill:#FFB6C1
 ```
 
 ### TF変換ツリー
 
 ```mermaid
 graph TD
-    UTM[utm] --> MAP[map]
-    MAP --> ODOM[odom]
+    MAP[map] --> ODOM[odom]
     ODOM --> BASE[base_link]
     BASE --> GPS[gps_link]
 
-    style UTM fill:#FFE4B5
     style MAP fill:#FFB6C1
     style ODOM fill:#DDA0DD
     style BASE fill:#87CEEB
@@ -54,26 +52,26 @@ graph TD
 
 ```mermaid
 sequenceDiagram
-    participant N as osaka_navsat_transform
+    participant I as initialize_origin.py
+    participant G as GPS Publisher
     participant M as mapviz
     participant W as WGS84Transformer
     participant T as TileMap Plugin
 
-    N->>N: ノード起動
-    N->>N: publish_static_transforms()
-    N->>M: /local_xy_origin (PoseStamped)
-    Note over M,W: lat=34.702485, lon=135.495951
+    I->>I: ノード起動
+    I->>M: /local_xy_origin (PoseStamped)
+    Note over I,M: GPS座標から原点設定<br/>auto mode: 初回GPS fixから<br/>fixed mode: 固定座標から
 
     M->>W: WGS84変換を初期化
     W->>W: LocalXyWgs84Util initializing origin
 
-    N->>M: /fix (NavSatFix)
-    Note over N,M: 定期的に配信 (10Hz)
+    G->>M: /fix (NavSatFix)
+    Note over G,M: 定期的に配信 (10Hz)
 
     M->>W: GPS座標をローカルXYに変換
     W->>T: 変換済み座標
     T->>T: Web Mercator投影でタイル座標を計算
-    T->>T: OpenStreetMapからタイルをダウンロード
+    T->>T: タイルサーバーからタイルをダウンロード
     T->>M: タイル画像を表示
 ```
 
@@ -148,35 +146,41 @@ position_covariance_type: 2  # COVARIANCE_TYPE_DIAGONAL_KNOWN
 **必須の変換チェーン:**
 
 ```
-utm → map → odom → base_link → gps_link
+map → odom → base_link → gps_link
 ```
 
-**各変換の設定例:**
+**Launch file例 (mapviz_auto.launch.py, mapviz_fixed_origin.launch.py):**
 
 ```python
-# utm → map (大阪駅の場合、原点なので単位行列)
-t = TransformStamped()
-t.header.frame_id = 'utm'
-t.child_frame_id = 'map'
-t.transform.translation.x = 0.0
-t.transform.translation.y = 0.0
-t.transform.translation.z = 0.0
-t.transform.rotation.w = 1.0
+# Static TF: map -> odom
+Node(
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    name='map_to_odom',
+    arguments=['--x', '0', '--y', '0', '--z', '0',
+               '--roll', '0', '--pitch', '0', '--yaw', '0',
+               '--frame-id', 'map', '--child-frame-id', 'odom']
+),
 
-# map → odom (単位行列)
-t.header.frame_id = 'map'
-t.child_frame_id = 'odom'
-# ... (同様)
+# Static TF: odom -> base_link
+Node(
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    name='odom_to_base_link',
+    arguments=['--x', '0', '--y', '0', '--z', '0',
+               '--roll', '0', '--pitch', '0', '--yaw', '0',
+               '--frame-id', 'odom', '--child-frame-id', 'base_link']
+),
 
-# odom → base_link (単位行列)
-t.header.frame_id = 'odom'
-t.child_frame_id = 'base_link'
-# ...
-
-# base_link → gps_link (単位行列)
-t.header.frame_id = 'base_link'
-t.child_frame_id = 'gps_link'
-# ...
+# Static TF: base_link -> gps_link
+Node(
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    name='base_link_to_gps_link',
+    arguments=['--x', '0', '--y', '0', '--z', '0',
+               '--roll', '0', '--pitch', '0', '--yaw', '0',
+               '--frame-id', 'base_link', '--child-frame-id', 'gps_link']
+),
 ```
 
 ---
@@ -357,8 +361,8 @@ displays:
    ```bash
    ros2 run tf2_tools view_frames
    ```
-2. 必要な変換チェーンを確認: `utm → map → odom → base_link → gps_link`
-3. StaticTransformBroadcasterで静的変換を配信
+2. 必要な変換チェーンを確認: `map → odom → base_link → gps_link`
+3. StaticTransformPublisherで静的変換を配信（launch fileに含まれる）
 
 ### 問題3: GPSマーカーは表示されるがタイルが表示されない
 
@@ -400,112 +404,105 @@ custom_sources:
 
 ## 実装例
 
-### 完全なNavSatTransformノード
+### このリポジトリのLaunch file構成
 
-`osaka_navsat_transform.py`の実装ポイント：
+**mapviz_auto.launch.py の主要部分:**
 
 ```python
-#!/usr/bin/env python3
-import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import NavSatFix
-from geometry_msgs.msg import PoseStamped
-from tf2_ros import StaticTransformBroadcaster
-from rclpy.qos import QoSProfile, DurabilityPolicy
-import math
+# initialize_origin.py ノード起動
+# autoモード: 初回GPS fixから原点を設定
+Node(
+    package='swri_transform_util',
+    executable='initialize_origin.py',
+    name='initialize_origin',
+    output='screen',
+    parameters=[{
+        'local_xy_frame': 'map',
+        'local_xy_origin': 'auto',
+        'local_xy_navsatfix_topic': '/fix'
+    }]
+),
 
-class OsakaNavSatTransform(Node):
-    def __init__(self):
-        super().__init__('osaka_navsat_transform')
+# 静的TF変換の設定 (map → odom → base_link → gps_link)
+# ... (上記参照)
 
-        # 大阪駅の座標
-        self.datum_lat = 34.702485
-        self.datum_lon = 135.495951
-        self.datum_alt = 5.0
+# mapviz起動
+Node(
+    package='mapviz',
+    executable='mapviz',
+    name='mapviz',
+    output='screen',
+    parameters=[{
+        'config': mapviz_config,
+        'autosave': False  # AutoSave無効化
+    }]
+),
+```
 
-        # QoS: TRANSIENT_LOCALで後から起動したmapvizにも配信
-        origin_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+**mapviz_fixed_origin.launch.py の主要部分:**
 
-        # Publishers
-        self.origin_publisher = self.create_publisher(
-            PoseStamped, '/local_xy_origin', origin_qos)
-        self.gps_publisher = self.create_publisher(
-            NavSatFix, '/fix', 10)
+```python
+# 固定座標（大阪駅）を設定
+osaka_station_lat = 34.702485
+osaka_station_lon = 135.495951
+osaka_station_alt = 0.0
 
-        # TF broadcaster
-        self.static_tf_broadcaster = StaticTransformBroadcaster(self)
+# initialize_origin.py ノード起動
+# fixedモード: 指定座標を原点として設定
+Node(
+    package='swri_transform_util',
+    executable='initialize_origin.py',
+    name='initialize_origin',
+    output='screen',
+    parameters=[{
+        'local_xy_frame': 'map',
+        'local_xy_origin': 'osaka_station',
+        'local_xy_origins': str([{
+            'name': 'osaka_station',
+            'latitude': osaka_station_lat,
+            'longitude': osaka_station_lon,
+            'altitude': osaka_station_alt,
+            'heading': 0.0
+        }])
+    }]
+),
+```
 
-        # 初期化
-        self.publish_static_transforms()
-        self.publish_origin()
+### GPS座標の配信方法
 
-        # 定期配信
-        self.timer = self.create_timer(0.1, self.publish_gps)
+**publish_osaka.sh の例:**
 
-    def publish_origin(self):
-        """WGS84変換の原点を配信"""
-        origin_msg = PoseStamped()
-        origin_msg.header.stamp = self.get_clock().now().to_msg()
-        origin_msg.header.frame_id = 'map'
-
-        # 重要: position.x = 経度, position.y = 緯度
-        origin_msg.pose.position.x = self.datum_lon
-        origin_msg.pose.position.y = self.datum_lat
-        origin_msg.pose.position.z = self.datum_alt
-        origin_msg.pose.orientation.w = 1.0
-
-        self.origin_publisher.publish(origin_msg)
-        self.get_logger().info(
-            f'Published local_xy_origin: lat={self.datum_lat}, '
-            f'lon={self.datum_lon}, alt={self.datum_alt}')
-
-    def publish_static_transforms(self):
-        """静的TF変換を配信"""
-        # utm → map → odom → base_link → gps_link
-        # 実装省略（全て単位行列）
-        pass
-
-    def publish_gps(self):
-        """GPS fixを配信"""
-        gps_msg = NavSatFix()
-        gps_msg.header.stamp = self.get_clock().now().to_msg()
-        gps_msg.header.frame_id = 'gps_link'
-        gps_msg.latitude = self.datum_lat
-        gps_msg.longitude = self.datum_lon
-        gps_msg.altitude = self.datum_alt
-        gps_msg.status.status = 0  # STATUS_FIX
-        gps_msg.status.service = 1  # SERVICE_GPS
-
-        self.gps_publisher.publish(gps_msg)
+```bash
+#!/bin/bash
+ros2 topic pub /fix sensor_msgs/msg/NavSatFix \
+"{header: {stamp: {sec: 0, nanosec: 0}, frame_id: 'gps_link'}, \
+status: {status: 0, service: 1}, \
+latitude: 34.702485, longitude: 135.495951, altitude: 5.0}" \
+-r 10
 ```
 
 ---
 
 ## 起動方法
 
-### 1. NavSatTransformノードを起動
+### 方法1: GPS座標を原点とするMapviz起動
 
 ```bash
-python3 /home/taro/temp2/osaka_navsat_transform.py
+# Terminal 1: GPS座標を配信
+bash publish_osaka.sh
+
+# Terminal 2: Mapvizを起動
+ros2 launch mapviz_auto.launch.py
 ```
 
-### 2. mapvizを起動
+### 方法2: 固定座標を原点とするMapviz起動
 
 ```bash
-ros2 run mapviz mapviz --load /home/taro/temp2/mapviz_osaka.mvc
+# GPS配信不要、直接起動
+ros2 launch mapviz_fixed_origin.launch.py
 ```
 
-**国土地理院の地図を使用する場合:**
-
-```bash
-# GPSデータ配信ノードを起動
-python3 osaka_navsat_transform.py
-
-# mapvizを国土地理院タイル設定で起動
-ros2 run mapviz mapviz --load /home/taro/temp2/mapviz_osaka_gsi.mvc
-```
-
-### 3. 確認コマンド
+### 確認コマンド
 
 ```bash
 # /local_xy_originを確認
@@ -516,6 +513,9 @@ ros2 topic echo /fix --once
 
 # TF変換ツリーを確認
 ros2 run tf2_tools view_frames
+
+# システム診断
+python3 mapviz_doctor.py
 ```
 
 ---
@@ -756,7 +756,7 @@ mapvizで地図タイルを表示するには：
    - 10Hz推奨
 
 3. ✅ TF変換ツリーを構築
-   - utm → map → odom → base_link → gps_link
+   - map → odom → base_link → gps_link
 
 4. ✅ Mapviz設定ファイルでタイルサーバーを指定
    - OpenStreetMap推奨
