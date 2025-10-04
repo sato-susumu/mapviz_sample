@@ -124,11 +124,8 @@ def check_topic_list(node: Node) -> Tuple[CheckLevel, List[str], str]:
         return CheckLevel.ERROR, [], f"トピックリスト取得エラー: {str(e)}"
 
 
-def check_required_topics(topics: List[str]) -> Tuple[CheckLevel, str]:
-    """必要なトピック(/tf, /tf_static)が存在するか確認 (Mapviz必須)"""
-    if not topics:
-        return CheckLevel.ERROR, "トピックリストが空です"
-
+def check_required_publishers(node: Node) -> Tuple[CheckLevel, str]:
+    """必要なトピック(/tf, /tf_static)のpublisher確認 (Mapviz必須)"""
     # Mapvizに必須のトピック
     required_critical = {
         '/tf': 'TF変換用',
@@ -138,22 +135,23 @@ def check_required_topics(topics: List[str]) -> Tuple[CheckLevel, str]:
     results = []
     missing = []
     for topic, desc in required_critical.items():
-        if topic in topics:
-            results.append(f"{topic} ({desc}): ✓ 存在")
+        pub_count = node.count_publishers(topic)
+        if pub_count > 0:
+            results.append(f"{topic} ({desc}): ✓ Publisher {pub_count}件")
         else:
-            results.append(f"{topic} ({desc}): ✗ 不足")
+            results.append(f"{topic} ({desc}): ✗ Publisher 0件")
             missing.append(topic)
 
     details = "\n     ".join(results)
 
     if missing:
-        return CheckLevel.ERROR, f"必須トピック確認:\n     {details}"
+        return CheckLevel.ERROR, f"必須トピックpublisher確認:\n     {details}"
     else:
-        return CheckLevel.OK, f"必須トピック確認:\n     {details}"
+        return CheckLevel.OK, f"必須トピックpublisher確認:\n     {details}"
 
 
-def check_optional_topics(topics: List[str]) -> Tuple[CheckLevel, str]:
-    """オプショナルなトピック(/fix, /local_xy_origin)の確認"""
+def check_optional_publishers(node: Node) -> Tuple[CheckLevel, str]:
+    """オプショナルなトピック(/fix, /local_xy_origin)のpublisher確認"""
     optional = {
         '/fix': 'GPS座標表示用',
         '/local_xy_origin': 'GPS原点設定用'
@@ -162,38 +160,19 @@ def check_optional_topics(topics: List[str]) -> Tuple[CheckLevel, str]:
     results = []
     missing_count = 0
     for topic, desc in optional.items():
-        if topic in topics:
-            results.append(f"{topic} ({desc}): ✓ 存在")
+        pub_count = node.count_publishers(topic)
+        if pub_count > 0:
+            results.append(f"{topic} ({desc}): ✓ Publisher {pub_count}件")
         else:
-            results.append(f"{topic} ({desc}): ✗ 不足")
+            results.append(f"{topic} ({desc}): ✗ Publisher 0件")
             missing_count += 1
 
     details = "\n     ".join(results)
 
     if missing_count > 0:
-        return CheckLevel.WARNING, f"GPS関連トピック確認:\n     {details}"
+        return CheckLevel.WARNING, f"GPS関連トピックpublisher確認:\n     {details}"
     else:
-        return CheckLevel.OK, f"GPS関連トピック確認:\n     {details}"
-
-
-def check_gps_hz() -> Tuple[CheckLevel, str]:
-    """GPS座標の発行周波数を確認"""
-    try:
-        result = subprocess.run(
-            ['ros2', 'topic', 'hz', '/fix'],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        # 1Hz前後であればOK
-        if 'average rate' in result.stdout:
-            return CheckLevel.OK, "GPS座標が定期的に発行されています"
-        else:
-            return CheckLevel.WARNING, "GPS座標の発行が検出されませんでした"
-    except subprocess.TimeoutExpired:
-        return CheckLevel.WARNING, "タイムアウト: GPS座標が発行されていない可能性があります"
-    except Exception as e:
-        return CheckLevel.WARNING, f"エラー: {str(e)}"
+        return CheckLevel.OK, f"GPS関連トピックpublisher確認:\n     {details}"
 
 
 def get_all_frames(tf_buffer: 'Buffer') -> List[str]:
@@ -250,36 +229,50 @@ def check_tf_tree(node: Node) -> Tuple[CheckLevel, str]:
         for i in range(10):  # 最大1秒待機
             rclpy.spin_once(node, timeout_sec=0.1)
 
-        # 利用可能なフレームを取得
-        all_frames = get_all_frames(tf_buffer)
-
         results = []
         overall_status = CheckLevel.OK
 
-        # 1. 各フレームの存在確認
-        required_frames = ['map', 'odom', 'base_link', 'gps_link']
-        for frame in required_frames:
-            if frame in all_frames:
-                results.append(f"✓ {frame}フレーム: 存在")
-            else:
-                results.append(f"✗ {frame}フレーム: 不在")
-                overall_status = CheckLevel.ERROR
+        # 1. 段階的な変換をチェックしてフレーム存在を確認
+        # map → odom
+        success1, info1, _ = check_transform_chain(tf_buffer, 'odom', 'map')
 
-        # 2. 最終的な変換 (map → gps_link) を試行
-        success, transform_info, _ = check_transform_chain(tf_buffer, 'gps_link', 'map')
-        if success:
-            results.append(f"✓ TF変換 map → gps_link (最終): 成功 ({transform_info})")
+        # odom → base_link
+        success2, info2, _ = check_transform_chain(tf_buffer, 'base_link', 'odom')
+
+        # base_link → gps_link
+        success3, info3, _ = check_transform_chain(tf_buffer, 'gps_link', 'base_link')
+
+        # map → gps_link (最終)
+        success_final, info_final, _ = check_transform_chain(tf_buffer, 'gps_link', 'map')
+
+        # フレーム存在確認（変換成功から推定）
+        map_exists = success1 or success_final
+        odom_exists = success1 or success2
+        base_link_exists = success2 or success3
+        gps_link_exists = success3 or success_final
+
+        # フレーム存在表示
+        results.append(f"{'✓' if map_exists else '✗'} mapフレーム: {'存在' if map_exists else '不在'}")
+        results.append(f"{'✓' if odom_exists else '✗'} odomフレーム: {'存在' if odom_exists else '不在'}")
+        results.append(f"{'✓' if base_link_exists else '✗'} base_linkフレーム: {'存在' if base_link_exists else '不在'}")
+        results.append(f"{'✓' if gps_link_exists else '✗'} gps_linkフレーム: {'存在' if gps_link_exists else '不在'}")
+
+        # 不在のフレームがあればエラー
+        if not (map_exists and odom_exists and base_link_exists and gps_link_exists):
+            overall_status = CheckLevel.ERROR
+
+        # 最終変換結果
+        if success_final:
+            results.append(f"✓ TF変換 map → gps_link (最終): 成功 ({info_final})")
         else:
             results.append(f"✗ TF変換 map → gps_link (最終): 失敗")
             if overall_status == CheckLevel.OK:
                 overall_status = CheckLevel.WARNING
 
-        # 3. 段階的な変換をすべてチェック (存在有無に関わらず)
+        # 段階的な変換
         results.append("")  # 空行
         results.append("段階的なTF変換:")
 
-        # map → odom
-        success1, info1, _ = check_transform_chain(tf_buffer, 'odom', 'map')
         if success1:
             results.append(f"  ✓ map → odom: 成功 ({info1})")
         else:
@@ -287,8 +280,6 @@ def check_tf_tree(node: Node) -> Tuple[CheckLevel, str]:
             if overall_status == CheckLevel.OK:
                 overall_status = CheckLevel.WARNING
 
-        # odom → base_link
-        success2, info2, _ = check_transform_chain(tf_buffer, 'base_link', 'odom')
         if success2:
             results.append(f"  ✓ odom → base_link: 成功 ({info2})")
         else:
@@ -296,8 +287,6 @@ def check_tf_tree(node: Node) -> Tuple[CheckLevel, str]:
             if overall_status == CheckLevel.OK:
                 overall_status = CheckLevel.WARNING
 
-        # base_link → gps_link
-        success3, info3, _ = check_transform_chain(tf_buffer, 'gps_link', 'base_link')
         if success3:
             results.append(f"  ✓ base_link → gps_link: 成功 ({info3})")
         else:
@@ -390,13 +379,13 @@ def main():
             error_count += 1
 
         if level == CheckLevel.OK:
-            level, message = check_required_topics(topics)
-            print_result("Mapviz必須トピック確認", level, message)
+            level, message = check_required_publishers(node)
+            print_result("Mapviz必須トピックpublisher確認", level, message)
             if level == CheckLevel.ERROR:
                 error_count += 1
 
-            level, message = check_optional_topics(topics)
-            print_result("GPS関連トピック確認", level, message)
+            level, message = check_optional_publishers(node)
+            print_result("GPS関連トピックpublisher確認", level, message)
             if level == CheckLevel.WARNING:
                 warning_count += 1
 
