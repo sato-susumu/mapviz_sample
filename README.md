@@ -1,4 +1,4 @@
-# mapvizのサンプル
+# Mapvizのサンプル
 
 ## Mapvizを使う場合のポイント
 
